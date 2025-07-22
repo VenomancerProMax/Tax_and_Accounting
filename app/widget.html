@@ -7,8 +7,54 @@
       <link rel="stylesheet" type="text/css" href="css/index.css">
   </head>
   <body>
+
+    <div class="form-container">
+      <label for="tax-registration-number">Tax Registration Number (TRN) <span style="color: red;">*</span></label>
+      <input type="text" id="tax-registration-number" name="tax-registration-number"/>
+
+      <!-- <label for="corporate-tax-certificate" style="margin-top: 16px; display: block;">Corporate Tax Certificate 
+        <span title="Drag and drop your file here, or click “Choose File” to upload the Corporate Tax Certificate." style="cursor: help; color: #555;">&#9432;</span>
+        <span style="color: red;">*</span></label>
+      <input type="file" id="corporate-tax-certificate" name="corporate-tax-certificate" accept=".pdf,.jpg,.jpeg,.png" required /> -->
+
+      <label for="tax-period-ct" style="margin-top: 16px; display: block;">Tax Period CT <span style="color: red;">*</span></label>
+      <select id="tax-period-ct" name="tax-period-ct">
+        <option value="" disabled selected>Select ...</option>
+        <option value="January - December">January - December</option>
+        <option value="February - January">February - January</option>
+        <option value="March - February">March - February</option>
+        <option value="April - March">April - March</option>
+        <option value="May - April">May - April</option>
+        <option value="June - May">June - May</option>
+        <option value="July - June">July - June</option>
+        <option value="August - July">August - July</option>
+        <option value="September - August">September - August</option>
+        <option value="October - September">October - September</option>
+        <option value="November - October">November - October</option>
+        <option value="December - November">December - November</option>
+      </select>
+
+      <label for="effective-date">Effective Date of Registration <span style="color: red;">*</span></label>
+      <input type="date" id="effective-date" name="effective-date" required />
+
+      <label for="date-of-issue" style="margin-top: 16px; display: block;">Date of Issue <span style="color: red;">*</span></label>
+      <input type="date" id="date-of-issue" name="date-of-issue" required />
+
+      <label for="ctr-due-date" style="margin-top: 16px; display: block;">1st CTR Due Date
+        <span title="What is the first annual return of this client?" style="cursor: help; color: #555;">&#9432;</span>
+        <span style="color: red;">*</span>
+      </label>
+      <input type="date" id="ctr-due-date" name="ctr-due-date" required />
+
+      <button class="submit-button" type="button" id="submit_button_id" onclick="update_record(event)">Submit</button>
+    </div>
+
+   
+
     <div>
       <button class="close-button" onclick="hidePopup()">×</button>
     </div>
+
+    <script src="js/app.js"></script>
   </body>
 </html>
