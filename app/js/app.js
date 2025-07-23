@@ -53,11 +53,11 @@ async function update_record(event = null) {
   }
 
   // Step 1: Read input field values
-  const effectiveDate = document.getElementById("effective-date").value;
-  const dateOfIssue = document.getElementById("date-of-issue").value;
-  const ctrDueDate = document.getElementById("ctr-due-date").value;
-  const taxRegNo = document.getElementById("tax-registration-number").value;
-  const taxPeriodCt = document.getElementById("tax-period-ct").value;
+  const effectiveDate = document.getElementById("effective-date")?.value;
+  const dateOfIssue = document.getElementById("date-of-issue")?.value;
+  const ctrDueDate = document.getElementById("ctr-due-date")?.value;
+  const taxRegNo = document.getElementById("tax-registration-number")?.value;
+  const taxPeriodCt = document.getElementById("tax-period-ct")?.value;
   const fileInput = document.getElementById("corporate-tax-certificate");
   const file = fileInput.files[0];
 
@@ -184,10 +184,11 @@ async function update_record(event = null) {
     await fileUploadPromise;
 
     // Step 7: Close the popup and proceed
-    await handleCloseOrProceed(hasError);
+    await handleCloseOrProceed(false);
 
   } catch (error) {
     console.error("Error in update_record:", error);
+    await handleCloseOrProceed(true);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -196,7 +197,7 @@ async function update_record(event = null) {
   }
 }
 
-async function handleCloseOrProceed(hasError) {
+async function handleCloseOrProceed(hasError = true) {
   try {
     if (hasError) {
       // Just close the popup, don’t proceed
