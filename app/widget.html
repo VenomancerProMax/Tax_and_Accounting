@@ -13,10 +13,13 @@
       <input type="text" id="tax-registration-number" name="tax-registration-number"/>
       <span class="error-message" id="error-tax-registration-number"></span>
 
-      <!-- <label for="corporate-tax-certificate" style="margin-top: 16px; display: block;">Corporate Tax Certificate 
+      <label for="corporate-tax-certificate" style="margin-top: 16px; display: block;">Corporate Tax Certificate 
         <span title="Drag and drop your file here, or click “Choose File” to upload the Corporate Tax Certificate." style="cursor: help; color: #555;">&#9432;</span>
-        <span style="color: red;">*</span></label>
-      <input type="file" id="corporate-tax-certificate" name="corporate-tax-certificate" accept=".pdf,.jpg,.jpeg,.png" required /> -->
+        <span style="color: red;">*</span>
+      </label>
+      <input type="file" id="corporate-tax-certificate" name="corporate-tax-certificate" accept=".pdf,.jpg,.jpeg,.png" required />
+      <span class="error-message" id="error-corporate-tax-certificate" style="color: red; font-size: 12px;"></span>
+
 
       <label for="tax-period-ct" style="margin-top: 16px; display: block;">Tax Period CT <span style="color: red;">*</span></label>
       <select id="tax-period-ct" name="tax-period-ct">
@@ -54,10 +57,8 @@
       <button class="submit-button" type="button" id="submit_button_id" onclick="update_record(event)">Submit</button>
     </div>
 
-   
-
     <div>
-      <button class="close-button" onclick="hidePopup()">×</button>
+      <button class="close-button" onclick="handleCloseOrProceed(true)">×</button>
     </div>
 
     <script src="js/app.js"></script>

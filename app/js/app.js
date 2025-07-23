@@ -48,22 +48,22 @@ async function update_record(event = null) {
   const submitBtn = document.getElementById("submit_button_id");
 
   if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Submitting...";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
   }
 
-
-  // Step 1: Read new values from the input fields
+  // Step 1: Read input field values
   const effectiveDate = document.getElementById("effective-date").value;
   const dateOfIssue = document.getElementById("date-of-issue").value;
   const ctrDueDate = document.getElementById("ctr-due-date").value;
   const taxRegNo = document.getElementById("tax-registration-number").value;
   const taxPeriodCt = document.getElementById("tax-period-ct").value;
+  const fileInput = document.getElementById("corporate-tax-certificate");
+  const file = fileInput.files[0];
 
-    
   let hasError = false;
 
-  // Validate mandatory fields
+  // Step 2: Field validations
   if (!taxRegNo) {
     showError("tax-registration-number", "Tax Registration Number is required.");
     hasError = true;
@@ -84,7 +84,13 @@ async function update_record(event = null) {
     showError("ctr-due-date", "CTR Due Date is required.");
     hasError = true;
   }
-
+  if (!file) {
+    showError("corporate-tax-certificate", "Please upload the Corporate Tax Certificate.");
+    hasError = true;
+  } else if (file.size > 20 * 1024 * 1024) {
+    showError("corporate-tax-certificate", "File size must not exceed 20MB.");
+    hasError = true;
+  }
 
   if (hasError) {
     if (submitBtn) {
@@ -95,12 +101,11 @@ async function update_record(event = null) {
   }
 
   try {
-
     if (submitBtn) {
       submitBtn.textContent = "Submitting...";
     }
-    
-    // Step 2: Prepare new subform rows
+
+    // Step 3: Prepare subform data
     const subformData = [];
 
     if (dateOfIssue) {
@@ -124,7 +129,7 @@ async function update_record(event = null) {
       });
     }
 
-    // Step 3: Update the record with new subform data
+    // Step 4: Update Applications1 record
     const updateAppResp = await ZOHO.CRM.API.updateRecord({
       Entity: "Applications1",
       APIData: {
@@ -135,10 +140,9 @@ async function update_record(event = null) {
         Application_Issuance_Date: dateOfIssue
       }
     });
-    console.log("Updated record response:", updateAppResp);
+    console.log("Updated application record:", updateAppResp);
 
-
-    // Step 4: Update the account  [Effective_Registration_Date_VAT: dateOfIssue,]
+    // Step 5: Update linked Account record
     const updateAccountResp = await ZOHO.CRM.API.updateRecord({
       Entity: "Accounts",
       APIData: {
@@ -150,12 +154,40 @@ async function update_record(event = null) {
         CT_Status: "Active"
       }
     });
-    console.log("Updated account response:", updateAccountResp);
+    console.log("Updated account record:", updateAccountResp);
 
-    hidePopup();
+    // Step 6: Upload Corporate Tax Certificate
+    const reader = new FileReader();
+    const fileUploadPromise = new Promise((resolve, reject) => {
+      reader.onloadend = async function () {
+        try {
+          const blob = new Blob([reader.result]);
+          const fileResp = await ZOHO.CRM.API.attachFile({
+            Entity: "Applications1",
+            RecordID: app_id,
+            File: {
+              Name: file.name,
+              Content: blob
+            }
+          });
+          console.log("File upload response:", fileResp);
+          resolve(fileResp);
+        } catch (uploadErr) {
+          console.error("File upload failed:", uploadErr);
+          reject(uploadErr);
+        }
+      };
+      reader.onerror = reject;
+    });
+
+    reader.readAsArrayBuffer(file);
+    await fileUploadPromise;
+
+    // Step 7: Close the popup and proceed
+    await handleCloseOrProceed(hasError);
 
   } catch (error) {
-    console.error("Error updating record:", error);
+    console.error("Error in update_record:", error);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -164,17 +196,22 @@ async function update_record(event = null) {
   }
 }
 
-async function hidePopup() {
+async function handleCloseOrProceed(hasError) {
   try {
-    const proceedResp = await ZOHO.CRM.BLUEPRINT.proceed();
-    console.log("Blueprint proceed response:", proceedResp);
-  } catch (bpError) {
-    console.error("Error proceeding in Blueprint:", bpError);
-  } finally {
-    ZOHO.CRM.UI.Popup.closeReload();
+    if (hasError) {
+      // Just close the popup, don’t proceed
+      await ZOHO.CRM.UI.Popup.closeReload();
+    } else {
+      // Proceed with Blueprint and close
+      const proceedResp = await ZOHO.CRM.BLUEPRINT.proceed();
+      console.log("Blueprint proceed response:", proceedResp);
+      await ZOHO.CRM.UI.Popup.closeReload();
+    }
+  } catch (err) {
+    console.error("Error handling popup close or blueprint proceed:", err);
+    await ZOHO.CRM.UI.Popup.closeReload();
   }
 }
-
 
 
 // Initialize the embedded app
