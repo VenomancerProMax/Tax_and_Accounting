@@ -11,6 +11,7 @@
     <div class="form-container">
       <label for="tax-registration-number">Tax Registration Number (TRN) <span style="color: red;">*</span></label>
       <input type="text" id="tax-registration-number" name="tax-registration-number"/>
+      <span class="error-message" id="error-tax-registration-number"></span>
 
       <!-- <label for="corporate-tax-certificate" style="margin-top: 16px; display: block;">Corporate Tax Certificate 
         <span title="Drag and drop your file here, or click “Choose File” to upload the Corporate Tax Certificate." style="cursor: help; color: #555;">&#9432;</span>
@@ -33,18 +34,22 @@
         <option value="November - October">November - October</option>
         <option value="December - November">December - November</option>
       </select>
+      <span class="error-message" id="error-tax-period-ct"></span>
 
       <label for="effective-date">Effective Date of Registration <span style="color: red;">*</span></label>
       <input type="date" id="effective-date" name="effective-date" required />
+      <span class="error-message" id="error-effective-date"></span>
 
       <label for="date-of-issue" style="margin-top: 16px; display: block;">Date of Issue <span style="color: red;">*</span></label>
       <input type="date" id="date-of-issue" name="date-of-issue" required />
+      <span class="error-message" id="error-date-of-issue"></span>
 
       <label for="ctr-due-date" style="margin-top: 16px; display: block;">1st CTR Due Date
         <span title="What is the first annual return of this client?" style="cursor: help; color: #555;">&#9432;</span>
         <span style="color: red;">*</span>
       </label>
       <input type="date" id="ctr-due-date" name="ctr-due-date" required />
+      <span class="error-message" id="error-ctr-due-date"></span>
 
       <button class="submit-button" type="button" id="submit_button_id" onclick="update_record(event)">Submit</button>
     </div>

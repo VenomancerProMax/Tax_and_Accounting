@@ -101,3 +101,10 @@ input[type="file"] {
   .submit-button:hover {
     background-color: #357ABD;
   }
+
+  .error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
