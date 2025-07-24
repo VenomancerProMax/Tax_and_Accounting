@@ -39,7 +39,7 @@ function showError(fieldId, message) {
   if (errorSpan) errorSpan.textContent = message;
 }
 
-
+let hasError = false;
 async function update_record(event = null) {
   if (event) event.preventDefault();
 
@@ -61,7 +61,7 @@ async function update_record(event = null) {
   const fileInput = document.getElementById("corporate-tax-certificate");
   const file = fileInput.files[0];
 
-  let hasError = false;
+  hasError = false;
 
   // Step 2: Field validations
   if (!taxRegNo) {
