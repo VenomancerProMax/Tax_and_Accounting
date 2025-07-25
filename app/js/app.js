@@ -200,12 +200,11 @@ async function update_record(event = null) {
 async function handleCloseOrProceed(hasError = true) {
   try {
     if (hasError) {
-      // Just close the popup, don’t proceed
+      console.log("CLOSE RELOAD NOT PROCEED", hasError);
       await ZOHO.CRM.UI.Popup.closeReload();
     } else {
-      // Proceed with Blueprint and close
-      const proceedResp = await ZOHO.CRM.BLUEPRINT.proceed();
-      console.log("Blueprint proceed response:", proceedResp);
+      await ZOHO.CRM.BLUEPRINT.proceed();
+      console.log("PROCEED AND CLOSE RELOAD", hasError);
       await ZOHO.CRM.UI.Popup.closeReload();
     }
   } catch (err) {
