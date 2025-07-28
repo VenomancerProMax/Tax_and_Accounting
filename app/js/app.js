@@ -184,11 +184,12 @@ async function update_record(event = null) {
     await fileUploadPromise;
 
     // Step 7: Close the popup and proceed
-    await handleCloseOrProceed(false);
+    if(!hasError){
+      ZOHO.CRM.BLUEPRINT.proceed()
+    }
 
   } catch (error) {
     console.error("Error in update_record:", error);
-    await handleCloseOrProceed(true);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -197,22 +198,12 @@ async function update_record(event = null) {
   }
 }
 
-async function handleCloseOrProceed(hasError = true) {
-  try {
-    if (hasError) {
-      console.log("CLOSE RELOAD NOT PROCEED", hasError);
-      await ZOHO.CRM.UI.Popup.closeReload();
-    } else {
-      await ZOHO.CRM.BLUEPRINT.proceed();
-      console.log("PROCEED AND CLOSE RELOAD", hasError);
-      await ZOHO.CRM.UI.Popup.closeReload();
-    }
-  } catch (err) {
-    console.error("Error handling popup close or blueprint proceed:", err);
-    await ZOHO.CRM.UI.Popup.closeReload();
-  }
+async function handleCloseOrProceed() {
+  await ZOHO.CRM.UI.Popup.close()
+        .then(function(data){
+      console.log(data)
+  })
 }
-
 
 // Initialize the embedded app
 ZOHO.embeddedApp.init();
