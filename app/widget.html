@@ -9,6 +9,7 @@
   <body>
 
     <div class="form-container">
+      <form id="record-form">
       <label for="tax-registration-number">Tax Registration Number (TRN) <span style="color: red;">*</span></label>
       <input type="text" id="tax-registration-number" name="tax-registration-number"/>
       <span class="error-message" id="error-tax-registration-number"></span>
@@ -54,7 +55,8 @@
       <input type="date" id="ctr-due-date" name="ctr-due-date" required />
       <span class="error-message" id="error-ctr-due-date"></span>
 
-      <button class="submit-button" type="button" id="submit_button_id" onclick="update_record(event)">Submit</button>
+      <button class="submit-button" type="submit" id="submit_button_id" onclick="update_record(event)">Submit</button>
+      </form>
     </div>
 
     <div>
