@@ -39,14 +39,12 @@ function showError(fieldId, message) {
   if (errorSpan) errorSpan.textContent = message;
 }
 
-let hasError = false;
 async function update_record(event = null) {
   if (event) event.preventDefault();
 
   clearErrors();
 
   const submitBtn = document.getElementById("submit_button_id");
-
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting...";
@@ -59,31 +57,36 @@ async function update_record(event = null) {
   const taxRegNo = document.getElementById("tax-registration-number")?.value;
   const taxPeriodCt = document.getElementById("tax-period-ct")?.value;
   const fileInput = document.getElementById("corporate-tax-certificate");
-  const file = fileInput.files[0];
-
-  hasError = false;
+  const file = fileInput?.files[0];
 
   // Step 2: Field validations
+  let hasError = false;
+
   if (!taxRegNo) {
     showError("tax-registration-number", "Tax Registration Number is required.");
     hasError = true;
   }
+
   if (!taxPeriodCt) {
     showError("tax-period-ct", "Tax Period is required.");
     hasError = true;
   }
+
   if (!effectiveDate) {
     showError("effective-date", "Effective Registration Date is required.");
     hasError = true;
   }
+
   if (!dateOfIssue) {
     showError("date-of-issue", "Date of Issue is required.");
     hasError = true;
   }
+
   if (!ctrDueDate) {
     showError("ctr-due-date", "CTR Due Date is required.");
     hasError = true;
   }
+
   if (!file) {
     showError("corporate-tax-certificate", "Please upload the Corporate Tax Certificate.");
     hasError = true;
@@ -101,36 +104,23 @@ async function update_record(event = null) {
   }
 
   try {
-    if (submitBtn) {
-      submitBtn.textContent = "Submitting...";
-    }
-
     // Step 3: Prepare subform data
     const subformData = [];
 
     if (dateOfIssue) {
-      subformData.push({
-        Type_of_Dates: "Date of Issue",
-        Date: dateOfIssue
-      });
+      subformData.push({ Type_of_Dates: "Date of Issue", Date: dateOfIssue });
     }
 
     if (effectiveDate) {
-      subformData.push({
-        Type_of_Dates: "Effective Date of Registration",
-        Date: effectiveDate
-      });
+      subformData.push({ Type_of_Dates: "Effective Date of Registration", Date: effectiveDate });
     }
 
     if (ctrDueDate) {
-      subformData.push({
-        Type_of_Dates: "CTR Due Date",
-        Date: ctrDueDate
-      });
+      subformData.push({ Type_of_Dates: "CTR Due Date", Date: ctrDueDate });
     }
 
     // Step 4: Update Applications1 record
-    const updateAppResp = await ZOHO.CRM.API.updateRecord({
+    await ZOHO.CRM.API.updateRecord({
       Entity: "Applications1",
       APIData: {
         id: app_id,
@@ -140,10 +130,9 @@ async function update_record(event = null) {
         Application_Issuance_Date: dateOfIssue
       }
     });
-    console.log("Updated application record:", updateAppResp);
 
     // Step 5: Update linked Account record
-    const updateAccountResp = await ZOHO.CRM.API.updateRecord({
+    await ZOHO.CRM.API.updateRecord({
       Entity: "Accounts",
       APIData: {
         id: account_id,
@@ -154,7 +143,6 @@ async function update_record(event = null) {
         CT_Status: "Active"
       }
     });
-    console.log("Updated account record:", updateAccountResp);
 
     // Step 6: Upload Corporate Tax Certificate
     const reader = new FileReader();
@@ -170,10 +158,8 @@ async function update_record(event = null) {
               Content: blob
             }
           });
-          console.log("File upload response:", fileResp);
           resolve(fileResp);
         } catch (uploadErr) {
-          console.error("File upload failed:", uploadErr);
           reject(uploadErr);
         }
       };
@@ -183,10 +169,8 @@ async function update_record(event = null) {
     reader.readAsArrayBuffer(file);
     await fileUploadPromise;
 
-    // Step 7: Close the popup and proceed
-    if(!hasError){
-      ZOHO.CRM.BLUEPRINT.proceed()
-    }
+    // Step 7: Proceed with Blueprint transition
+    return ZOHO.CRM.BLUEPRINT.proceed();
 
   } catch (error) {
     console.error("Error in update_record:", error);
@@ -197,6 +181,9 @@ async function update_record(event = null) {
     }
   }
 }
+
+document.getElementById("record-form").addEventListener("submit", update_record);
+
 
 async function handleCloseOrProceed() {
   await ZOHO.CRM.UI.Popup.close()
