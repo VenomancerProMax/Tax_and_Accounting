@@ -145,32 +145,42 @@ async function update_record(event = null) {
     });
 
     // Step 6: Upload Corporate Tax Certificate
+  const fileUploadPromise = new Promise((resolve, reject) => {
     const reader = new FileReader();
-    const fileUploadPromise = new Promise((resolve, reject) => {
-      reader.onloadend = async function () {
-        try {
-          const blob = new Blob([reader.result]);
-          const fileResp = await ZOHO.CRM.API.attachFile({
-            Entity: "Applications1",
-            RecordID: app_id,
-            File: {
-              Name: file.name,
-              Content: blob
-            }
-          });
-          resolve(fileResp);
-        } catch (uploadErr) {
-          reject(uploadErr);
-        }
-      };
-      reader.onerror = reject;
-    });
+
+    reader.onloadend = async function () {
+      try {
+        const blob = new Blob([reader.result], { type: file.type });
+        const fileResp = await ZOHO.CRM.API.attachFile({
+          Entity: "Applications1",
+          RecordID: app_id,
+          File: {
+            Name: file.name,
+            Content: blob,
+          },
+        });
+        resolve(fileResp);
+      } catch (uploadErr) {
+        reject(uploadErr);
+      }
+    };
+
+    reader.onerror = reject;
+    reader.onabort = () => reject(new Error("File reading aborted"));
 
     reader.readAsArrayBuffer(file);
-    await fileUploadPromise;
+  });
+  console.log("FILE UPLOAD PROMISE: ", fileUploadPromise);
+
+  await fileUploadPromise;
 
     // Step 7: Proceed with Blueprint transition
-    return ZOHO.CRM.BLUEPRINT.proceed();
+    // return ZOHO.CRM.BLUEPRINT.proceed();
+    setTimeout(() => {
+      complete_trigger();
+      console.log("Delayed for 5 second.");
+    }, 5000);
+    
 
   } catch (error) {
     console.error("Error in update_record:", error);
@@ -182,8 +192,21 @@ async function update_record(event = null) {
   }
 }
 
-document.getElementById("record-form").addEventListener("submit", update_record);
+function complete_trigger() {
+  ZOHO.CRM.BLUEPRINT.proceed().then((response) => {
+    console.log("Blueprint proceed response:", response);
 
+    if (response && response.success) {
+      ZOHO.CRM.UI.Popup.closeReload();
+    } else {
+      console.log("Could not proceed with Blueprint. Please check the record's current state.");
+    }
+  }).catch((err) => {
+    console.error("Blueprint proceed error:", err);
+  });
+}
+
+document.getElementById("record-form").addEventListener("submit", update_record);
 
 async function handleCloseOrProceed() {
   await ZOHO.CRM.UI.Popup.close()
