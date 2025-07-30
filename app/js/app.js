@@ -174,36 +174,27 @@ async function update_record(event = null) {
 
   await fileUploadPromise;
 
-    // Step 7: Proceed with Blueprint transition
-    // return ZOHO.CRM.BLUEPRINT.proceed();
-    setTimeout(() => {
-      complete_trigger();
-      console.log("Delayed for 5 second.");
-    }, 5000);
+  // Step 7: Proceed with Blueprint transition
+  setTimeout(() => {
+    ZOHO.CRM.BLUEPRINT.proceed();
     
+    ZOHO.CRM.UI.Popup.closeReload();
+
+    console.log("Successfully proceeded with Blueprint");
+  }, 3000);
 
   } catch (error) {
     console.error("Error in update_record:", error);
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+    }
   } finally {
     if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
     }
   }
-}
-
-function complete_trigger() {
-  ZOHO.CRM.BLUEPRINT.proceed().then((response) => {
-    console.log("Blueprint proceed response:", response);
-
-    if (response && response.success) {
-      ZOHO.CRM.UI.Popup.closeReload();
-    } else {
-      console.log("Could not proceed with Blueprint. Please check the record's current state.");
-    }
-  }).catch((err) => {
-    console.error("Blueprint proceed error:", err);
-  });
 }
 
 document.getElementById("record-form").addEventListener("submit", update_record);
