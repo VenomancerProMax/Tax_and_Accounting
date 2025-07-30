@@ -150,13 +150,12 @@ async function update_record(event = null) {
 
     reader.onloadend = async function () {
       try {
-        const blob = new Blob([reader.result], { type: file.type });
         const fileResp = await ZOHO.CRM.API.attachFile({
           Entity: "Applications1",
           RecordID: app_id,
           File: {
             Name: file.name,
-            Content: blob,
+            Content: reader.result,
           },
         });
         resolve(fileResp);
@@ -165,12 +164,14 @@ async function update_record(event = null) {
       }
     };
 
+
     reader.onerror = reject;
     reader.onabort = () => reject(new Error("File reading aborted"));
 
     reader.readAsArrayBuffer(file);
   });
-  console.log("FILE UPLOAD PROMISE: ", fileUploadPromise);
+  fileUploadPromise.catch(console.error);
+  console.log("FILE UPLOAD ", fileUploadPromise);
 
   await fileUploadPromise;
 
