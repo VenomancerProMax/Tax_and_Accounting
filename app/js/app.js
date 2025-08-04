@@ -56,7 +56,7 @@ async function cacheFileOnChange(event) {
   if (!file) return;
 
   if (file.size > 20 * 1024 * 1024) {
-    showError("attach-acknowledgement", "File size must not exceed 20MB.");
+    showError("corporate-tax-certificate", "File size must not exceed 20MB.");
     return;
   }
 
@@ -103,6 +103,8 @@ async function update_record(event = null) {
 
   clearErrors();
 
+  let hasError = false;
+
   const submitBtn = document.getElementById("submit_button_id");
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -114,10 +116,7 @@ async function update_record(event = null) {
   const ctrDueDate = document.getElementById("ctr-due-date")?.value;
   const taxRegNo = document.getElementById("tax-registration-number")?.value;
   const taxPeriodCt = document.getElementById("tax-period-ct")?.value;
-  const fileInput = document.getElementById("corporate-tax-certificate");
-  const file = fileInput?.files[0];
 
-  let hasError = false;
 
   if (!taxRegNo) {
     showError("tax-registration-number", "Tax Registration Number is required.");
@@ -144,11 +143,8 @@ async function update_record(event = null) {
     hasError = true;
   }
 
-  if (!file) {
+  if (!cachedFile || !cachedBase64) {
     showError("corporate-tax-certificate", "Please upload the Corporate Tax Certificate.");
-    hasError = true;
-  } else if (file.size > 20 * 1024 * 1024) {
-    showError("corporate-tax-certificate", "File size must not exceed 20MB.");
     hasError = true;
   }
 
