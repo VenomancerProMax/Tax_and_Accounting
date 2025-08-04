@@ -1,4 +1,6 @@
 let account_id, app_id;
+let cachedFile = null;
+let cachedBase64 = null;
 
 ZOHO.embeddedApp.on("PageLoad", async (entity) => {
 try {
@@ -13,16 +15,6 @@ try {
     const applicationData = appResponse.data[0];
     app_id = applicationData.id;
     account_id = applicationData.Account_Name.id;
-
-    // ttaDateSubform = applicationData.Subform_2;
-    //   ttaDateSubform.forEach((row, index) => {
-    //     const typeOfDate = row.Type_of_Dates;
-    //     const date = row.Date;
-    //     console.log(row);
-    //     console.log(`--- Subform Row ${index + 1} ---`);
-    //     console.log("Type of Dates:", typeOfDate);
-    //     console.log("Date:", date);
-    //   });
 } catch (error) {
     console.error("PageLoad error:", error);
   }
@@ -39,6 +31,73 @@ function showError(fieldId, message) {
   if (errorSpan) errorSpan.textContent = message;
 }
 
+function showUploadBuffer() {
+  const buffer = document.getElementById("upload-buffer");
+  const bar = document.getElementById("upload-progress");
+  if (buffer) buffer.classList.remove("hidden");
+  if (bar) {
+    bar.classList.remove("animate");
+    void bar.offsetWidth;
+    bar.classList.add("animate");
+  }
+}
+
+function hideUploadBuffer() {
+  const buffer = document.getElementById("upload-buffer");
+  if (buffer) buffer.classList.add("hidden");
+}
+
+async function cacheFileOnChange(event) {
+  clearErrors();
+
+  const fileInput = event.target;
+  const file = fileInput?.files[0];
+
+  if (!file) return;
+
+  if (file.size > 20 * 1024 * 1024) {
+    showError("attach-acknowledgement", "File size must not exceed 20MB.");
+    return;
+  }
+
+  showUploadBuffer();
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+
+    cachedFile = file;
+    cachedBase64 = base64;
+
+    await new Promise((res) => setTimeout(res, 3000));
+    hideUploadBuffer();
+  } catch (err) {
+    console.error("Error caching file:", err);
+    hideUploadBuffer();
+    showError("corporate-tax-certificate", "Failed to read file.");
+  }
+}
+
+async function uploadFileToCRM() {
+  if (!cachedFile || !cachedBase64) {
+    throw new Error("No cached file");
+  }
+
+  return await ZOHO.CRM.API.attachFile({
+    Entity: "Applications1",
+    RecordID: app_id,
+    File: {
+      Name: cachedFile.name,
+      Content: cachedBase64,
+    },
+  });
+}
+
+
 async function update_record(event = null) {
   if (event) event.preventDefault();
 
@@ -50,7 +109,6 @@ async function update_record(event = null) {
     submitBtn.textContent = "Submitting...";
   }
 
-  // Step 1: Read input field values
   const effectiveDate = document.getElementById("effective-date")?.value;
   const dateOfIssue = document.getElementById("date-of-issue")?.value;
   const ctrDueDate = document.getElementById("ctr-due-date")?.value;
@@ -59,7 +117,6 @@ async function update_record(event = null) {
   const fileInput = document.getElementById("corporate-tax-certificate");
   const file = fileInput?.files[0];
 
-  // Step 2: Field validations
   let hasError = false;
 
   if (!taxRegNo) {
@@ -104,7 +161,6 @@ async function update_record(event = null) {
   }
 
   try {
-    // Step 3: Prepare subform data
     const subformData = [];
 
     if (dateOfIssue) {
@@ -119,7 +175,6 @@ async function update_record(event = null) {
       subformData.push({ Type_of_Dates: "CTR Due Date", Date: ctrDueDate });
     }
 
-    // Step 4: Update Applications1 record
     await ZOHO.CRM.API.updateRecord({
       Entity: "Applications1",
       APIData: {
@@ -131,7 +186,6 @@ async function update_record(event = null) {
       }
     });
 
-    // Step 5: Update linked Account record
     await ZOHO.CRM.API.updateRecord({
       Entity: "Accounts",
       APIData: {
@@ -144,67 +198,24 @@ async function update_record(event = null) {
       }
     });
 
-    // Step 6: Upload Corporate Tax Certificate
-  const fileUploadPromise = new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onloadend = async function () {
-      try {
-        const fileResp = await ZOHO.CRM.API.attachFile({
-          Entity: "Applications1",
-          RecordID: app_id,
-          File: {
-            Name: file.name,
-            Content: reader.result,
-          },
-        });
-        resolve(fileResp);
-      } catch (uploadErr) {
-        reject(uploadErr);
-      }
-    };
-
-
-    reader.onerror = reject;
-    reader.onabort = () => reject(new Error("File reading aborted"));
-
-    reader.readAsArrayBuffer(file);
-  });
-  fileUploadPromise.catch(console.error);
-  console.log("FILE UPLOAD ", fileUploadPromise);
-
-  await fileUploadPromise;
-
-  // Step 7: Proceed with Blueprint transition
-  setTimeout(() => {
-    ZOHO.CRM.BLUEPRINT.proceed();
-    
-    ZOHO.CRM.UI.Popup.closeReload();
-
-    console.log("Successfully proceeded with Blueprint");
-  }, 3000);
+    await uploadFileToCRM();
+    await ZOHO.CRM.BLUEPRINT.proceed();
+    await ZOHO.CRM.UI.Popup.closeReload();
 
   } catch (error) {
-    console.error("Error in update_record:", error);
+    console.error("Error on final submit:", err);
     if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Submitting...";
-    }
-  } finally {
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Submitting...";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit";
     }
   }
 }
 
+document.getElementById("corporate-tax-certificate").addEventListener("change", cacheFileOnChange);
 document.getElementById("record-form").addEventListener("submit", update_record);
 
-async function handleCloseOrProceed() {
-  await ZOHO.CRM.UI.Popup.close()
-        .then(function(data){
-      console.log(data)
-  })
+async function closeWidget() {
+  await ZOHO.CRM.UI.Popup.closeReload().then(console.log);
 }
 
 // Initialize the embedded app
