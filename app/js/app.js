@@ -97,6 +97,9 @@ async function uploadFileToCRM() {
   });
 }
 
+function complete_trigger() {
+  ZOHO.CRM.BLUEPRINT.proceed();
+}
 
 async function update_record(event = null) {
   if (event) event.preventDefault();
