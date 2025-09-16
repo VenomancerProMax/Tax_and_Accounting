@@ -15,6 +15,10 @@ try {
     const applicationData = appResponse.data[0];
     app_id = applicationData.id;
     account_id = applicationData.Account_Name.id;
+
+    ZOHO.CRM.UI.Resize({ height: "90%" }).then(function (data) {
+      console.log("Resize result:", data);
+    });
 } catch (error) {
     console.error("PageLoad error:", error);
   }
@@ -116,6 +120,7 @@ async function update_record(event = null) {
   const ctrDueDate = document.getElementById("ctr-due-date")?.value;
   const taxRegNo = document.getElementById("tax-registration-number")?.value;
   const taxPeriodCt = document.getElementById("tax-period-ct")?.value;
+  const ctrFinancialYearEnd = document.getElementById("ctr-financial-year-end-date")?.value;
 
 
   if (!taxRegNo) {
@@ -125,6 +130,11 @@ async function update_record(event = null) {
 
   if (!taxPeriodCt) {
     showError("tax-period-ct", "Tax Period is required.");
+    hasError = true;
+  }
+
+  if(!ctrFinancialYearEnd) {
+    showError("ctr-financial-year-end-date", "CTR Financial Year End Date.");
     hasError = true;
   }
 
@@ -169,6 +179,10 @@ async function update_record(event = null) {
 
     if (ctrDueDate) {
       subformData.push({ Type_of_Dates: "CTR Due Date", Date: ctrDueDate });
+    }
+
+    if (ctrFinancialYearEnd) {
+      subformData.push({ Type_of_Dates: "CTR Financial Year End Date", Date: ctrFinancialYearEnd });
     }
 
     await ZOHO.CRM.API.updateRecord({
