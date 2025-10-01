@@ -3,9 +3,9 @@ let cachedFile = null;
 let cachedBase64 = null;
 
 ZOHO.embeddedApp.on("PageLoad", async (entity) => {
-try {
+  try {
     const entity_id = entity.EntityId;
-  
+
     const appResponse = await ZOHO.CRM.API.getRecord({
       Entity: "Applications1",
       approved: "both",
@@ -19,7 +19,7 @@ try {
     ZOHO.CRM.UI.Resize({ height: "90%" }).then(function (data) {
       console.log("Resize result:", data);
     });
-} catch (error) {
+  } catch (error) {
     console.error("PageLoad error:", error);
   }
 });
@@ -69,9 +69,12 @@ async function cacheFileOnChange(event) {
   try {
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
+      reader.onload = () => {
+        const result = reader.result.split(',')[1]; // Remove data URL prefix
+        resolve(result);
+      };
       reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
+      reader.readAsDataURL(file);
     });
 
     cachedFile = file;
@@ -102,7 +105,7 @@ async function uploadFileToCRM() {
 }
 
 function complete_trigger() {
-  ZOHO.CRM.BLUEPRINT.proceed();
+  ZOHO.CRM.BLUEPRINT.proceed();
 }
 
 async function update_record(event = null) {
@@ -125,7 +128,6 @@ async function update_record(event = null) {
   const taxPeriodCt = document.getElementById("tax-period-ct")?.value;
   const ctrFinancialYearEnd = document.getElementById("ctr-financial-year-end-date")?.value;
 
-
   if (!taxRegNo) {
     showError("tax-registration-number", "Tax Registration Number is required.");
     hasError = true;
@@ -136,8 +138,8 @@ async function update_record(event = null) {
     hasError = true;
   }
 
-  if(!ctrFinancialYearEnd) {
-    showError("ctr-financial-year-end-date", "CTR Financial Year End Date.");
+  if (!ctrFinancialYearEnd) {
+    showError("ctr-financial-year-end-date", "CTR Financial Year End Date is required.");
     hasError = true;
   }
 
@@ -216,7 +218,7 @@ async function update_record(event = null) {
     await ZOHO.CRM.UI.Popup.closeReload();
 
   } catch (error) {
-    console.error("Error on final submit:", err);
+    console.error("Error on final submit:", error);
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit";
@@ -224,8 +226,38 @@ async function update_record(event = null) {
   }
 }
 
+// ✅ Auto-populate Financial Year End Date by subtracting 9 months and getting last day of that month
+function autoPopulateFinancialYearEndDate() {
+  const ctrDueDateInput = document.getElementById("ctr-due-date");
+  const financialYearEndInput = document.getElementById("ctr-financial-year-end-date");
+
+  ctrDueDateInput.addEventListener("change", () => {
+    const dueDateValue = ctrDueDateInput.value;
+    if (!dueDateValue) return;
+
+    const dueDate = new Date(dueDateValue);
+    const targetMonth = dueDate.getMonth() - 9;
+    const targetYear = dueDate.getFullYear();
+
+    const adjustedDate = new Date(targetYear, targetMonth, 1);
+
+    // Get last day of the adjusted month
+    const lastDay = new Date(adjustedDate.getFullYear(), adjustedDate.getMonth() + 1, 0);
+
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+
+    financialYearEndInput.value = `${yyyy}-${mm}-${dd}`;
+  });
+}
+
+// Event listeners
 document.getElementById("corporate-tax-certificate").addEventListener("change", cacheFileOnChange);
 document.getElementById("record-form").addEventListener("submit", update_record);
+
+// Initialize auto-population
+autoPopulateFinancialYearEndDate();
 
 async function closeWidget() {
   await ZOHO.CRM.UI.Popup.closeReload().then(console.log);
