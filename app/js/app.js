@@ -2,6 +2,62 @@ let account_id, app_id;
 let cachedFile = null;
 let cachedBase64 = null;
 
+// --- Core Functions for UI/Error Management ---
+
+/**
+ * Clears all displayed error messages on the form.
+ */
+function clearErrors() {
+  document.querySelectorAll(".error-message").forEach(span => {
+    span.textContent = "";
+  });
+}
+
+/**
+ * Displays an error message next to a specific field.
+ * @param {string} fieldId - The ID of the error span (e.g., 'tax-registration-number').
+ * @param {string} message - The error message to display.
+ */
+function showError(fieldId, message) {
+  const errorSpan = document.getElementById(`error-${fieldId}`);
+  if (errorSpan) errorSpan.textContent = message;
+}
+
+/**
+ * Shows the file upload progress buffer/overlay.
+ */
+function showUploadBuffer() {
+  const buffer = document.getElementById("upload-buffer");
+  const bar = document.getElementById("upload-progress");
+  if (buffer) buffer.classList.remove("hidden");
+  if (bar) {
+    bar.classList.remove("animate");
+    void bar.offsetWidth;
+    bar.classList.add("animate");
+  }
+}
+
+/**
+ * Hides the file upload progress buffer/overlay.
+ */
+function hideUploadBuffer() {
+  const buffer = document.getElementById("upload-buffer");
+  if (buffer) buffer.classList.add("hidden");
+}
+
+/**
+ * Closes the embedded widget and reloads the parent CRM window.
+ */
+async function closeWidget() {
+  await ZOHO.CRM.UI.Popup.closeReload().then(console.log);
+}
+
+// --- Data Fetching and Caching Logic ---
+
+/**
+ * Executes on widget load to fetch initial data.
+ * @param {object} entity - The entity object from the PageLoad event.
+ */
 ZOHO.embeddedApp.on("PageLoad", async (entity) => {
   try {
     const entity_id = entity.EntityId;
@@ -24,33 +80,10 @@ ZOHO.embeddedApp.on("PageLoad", async (entity) => {
   }
 });
 
-function clearErrors() {
-  document.querySelectorAll(".error-message").forEach(span => {
-    span.textContent = "";
-  });
-}
-
-function showError(fieldId, message) {
-  const errorSpan = document.getElementById(`error-${fieldId}`);
-  if (errorSpan) errorSpan.textContent = message;
-}
-
-function showUploadBuffer() {
-  const buffer = document.getElementById("upload-buffer");
-  const bar = document.getElementById("upload-progress");
-  if (buffer) buffer.classList.remove("hidden");
-  if (bar) {
-    bar.classList.remove("animate");
-    void bar.offsetWidth;
-    bar.classList.add("animate");
-  }
-}
-
-function hideUploadBuffer() {
-  const buffer = document.getElementById("upload-buffer");
-  if (buffer) buffer.classList.add("hidden");
-}
-
+/**
+ * Reads the selected file into memory (Base64) and performs size validation.
+ * @param {Event} event - The file input change event.
+ */
 async function cacheFileOnChange(event) {
   clearErrors();
 
@@ -59,18 +92,27 @@ async function cacheFileOnChange(event) {
 
   if (!file) return;
 
-  if (file.size > 20 * 1024 * 1024) {
-    showError("corporate-tax-certificate", "File size must not exceed 20MB.");
+  // Show buffer while processing
+  showUploadBuffer();
+
+  // File size validation (Max 20MB)
+  if (file.size > 10 * 1024 * 1024) {
+    showError("corporate-tax-certificate", "File size must not exceed 10MB.");
+    cachedFile = null;
+    cachedBase64 = null;
+    fileInput.value = ""; // Clear the file input
+    // Keep buffer visible briefly so user can see the error
+    setTimeout(() => {
+      hideUploadBuffer();
+    }, 1000);
     return;
   }
-
-  showUploadBuffer();
 
   try {
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
-        const result = reader.result.split(',')[1]; // Remove data URL prefix
+        const result = reader.result.split(',')[1];
         resolve(result);
       };
       reader.onerror = reject;
@@ -80,6 +122,7 @@ async function cacheFileOnChange(event) {
     cachedFile = file;
     cachedBase64 = base64;
 
+    // Simulate a delay for better UX and hide buffer on success
     await new Promise((res) => setTimeout(res, 3000));
     hideUploadBuffer();
   } catch (err) {
@@ -89,6 +132,9 @@ async function cacheFileOnChange(event) {
   }
 }
 
+/**
+ * Uploads the cached file (Base64) to the Applications1 record in CRM.
+ */
 async function uploadFileToCRM() {
   if (!cachedFile || !cachedBase64) {
     throw new Error("No cached file");
@@ -104,15 +150,16 @@ async function uploadFileToCRM() {
   });
 }
 
-function complete_trigger() {
-  ZOHO.CRM.BLUEPRINT.proceed();
-}
+// --- Main Submission Logic ---
 
-async function update_record(event = null) {
-  if (event) event.preventDefault();
+/**
+ * Handles the form submission event, performing validation and sending data to CRM.
+ * @param {Event} event - The form submit event.
+ */
+async function update_record(event) {
+  event.preventDefault();
 
   clearErrors();
-
   let hasError = false;
 
   const submitBtn = document.getElementById("submit_button_id");
@@ -226,7 +273,11 @@ async function update_record(event = null) {
   }
 }
 
-// ✅ Auto-populate Financial Year End Date by subtracting 9 months and getting last day of that month
+// --- Event Listeners and Initialization ---
+
+/**
+ * Auto-populates the financial year end date.
+ */
 function autoPopulateFinancialYearEndDate() {
   const ctrDueDateInput = document.getElementById("ctr-due-date");
   const financialYearEndInput = document.getElementById("ctr-financial-year-end-date");
@@ -240,8 +291,6 @@ function autoPopulateFinancialYearEndDate() {
     const targetYear = dueDate.getFullYear();
 
     const adjustedDate = new Date(targetYear, targetMonth, 1);
-
-    // Get last day of the adjusted month
     const lastDay = new Date(adjustedDate.getFullYear(), adjustedDate.getMonth() + 1, 0);
 
     const yyyy = lastDay.getFullYear();
@@ -252,16 +301,14 @@ function autoPopulateFinancialYearEndDate() {
   });
 }
 
-// Event listeners
+// Listener for file input change to cache the file
 document.getElementById("corporate-tax-certificate").addEventListener("change", cacheFileOnChange);
+
+// Listener for form submission to trigger validation and update logic
 document.getElementById("record-form").addEventListener("submit", update_record);
 
 // Initialize auto-population
 autoPopulateFinancialYearEndDate();
 
-async function closeWidget() {
-  await ZOHO.CRM.UI.Popup.closeReload().then(console.log);
-}
-
-// Initialize the embedded app
+// Initialize the Zoho Embedded App
 ZOHO.embeddedApp.init();
